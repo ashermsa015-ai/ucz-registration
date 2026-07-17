@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .form-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .form-subtitle {
+            text-align: center;
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .success-message {
+            display: none;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            text-align: center;
+        }
+
+        .error-message {
+            display: none;
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="form-title">UCZ Registration</h1>
+        <p class="form-subtitle">Please fill in your information</p>
+
+        <div class="success-message" id="successMessage">
+            ✓ Thank you! Your information has been recorded.
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            ✗ Please fill in all fields correctly.
+        </div>
+
+        <form id="studentForm">
+            <div class="form-group">
+                <label for="fullName">Full Name *</label>
+                <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="program">Program *</label>
+                <input type="text" id="program" name="program" placeholder="Enter your program" required>
+            </div>
+
+            <div class="form-group">
+                <label for="yearOfStudy">Year of Study *</label>
+                <select id="yearOfStudy" name="yearOfStudy" required>
+                    <option value=""> Select Year </option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="5th Year">5th Year</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="hotel">Hotel *</label>
+                <select id="hotel" name="hotel" required>
+                    <option value=""> Select Hotel </option>
+                    <option value="Hotel W">Hotel W</option>
+                    <option value="Hotel X">Hotel X</option>
+                    <option value="Hotel Y">Hotel Y</option>
+                    <option value="Hotel Z">Hotel Z</option>
+                    <option value="Boarding House">Boarding House</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="roomNumber">Room Number *</label>
+                <input type="text" id="roomNumber" name="roomNumber" placeholder="Enter your room number" required>
+            </div>
+
+            <button type="submit">Submit</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 20px; font-size: 12px;">
+            <a href="/admin" style="color: #667eea; text-decoration: none;">Admin Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('studentForm');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const fullName = document.getElementById('fullName').value.trim();
+            const program = document.getElementById('program').value;
+            const yearOfStudy = document.getElementById('yearOfStudy').value;
+            const hotel = document.getElementById('hotel').value;
+            const roomNumber = document.getElementById('roomNumber').value.trim();
+
+            if (!fullName || !program || !yearOfStudy || !hotel || !roomNumber) {
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName, program, yearOfStudy, hotel, roomNumber })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    successMessage.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                    form.reset();
+                    setTimeout(() => { successMessage.style.display = 'none'; }, 3000);
+                } else {
+                    errorMessage.textContent = '✗ ' + data.message;
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = '✗ An error occurred. Please try again.';
+                errorMessage.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>
