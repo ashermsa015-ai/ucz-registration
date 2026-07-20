@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1dd7 0%, #145f62 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,9 +23,9 @@
         }
 
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.755);
             border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 40px rgba(43, 39, 39, 0.2);
             padding: 40px;
             max-width: 500px;
             width: 100%;
@@ -33,7 +33,7 @@
 
         .form-title {
             text-align: center;
-            color: #333;
+            color: #444343;
             margin-bottom: 10px;
             font-size: 28px;
             font-weight: 600;
@@ -41,7 +41,7 @@
 
         .form-subtitle {
             text-align: center;
-            color: #999;
+            color: #857979;
             margin-bottom: 30px;
             font-size: 14px;
         }
@@ -53,7 +53,7 @@
         label {
             display: block;
             margin-bottom: 8px;
-            color: #555;
+            color: #515050;
             font-weight: 500;
             font-size: 14px;
         }
@@ -62,7 +62,7 @@
         select {
             width: 100%;
             padding: 12px 15px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e0c0c0;
             border-radius: 5px;
             font-size: 14px;
             font-family: inherit;
@@ -71,14 +71,14 @@
         input:focus,
         select:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+            border-color: #1f44ea;
+            box-shadow: 0 0 5px rgba(57, 70, 125, 0.3);
         }
 
         button {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #66e8ea 0%, #3239a2 100%);
             color: white;
             border: none;
             border-radius: 5px;
@@ -114,11 +114,11 @@
 
 <body>
     <div class="container">
-        <h1 class="form-title">UCZ Registration</h1>
-        <p class="form-subtitle">Please fill in your information</p>
+        <h1 class="form-title">UCZ KMU FELLOWSHIP</h1>
+        <p class="form-subtitle">May Grace be multiplied to you</p>
 
         <div class="success-message" id="successMessage">
-            ✓ Thank you! Your information has been recorded.
+            ✓ Thank you! MULI BANTU SANA.
         </div>
 
         <div class="error-message" id="errorMessage">
@@ -129,6 +129,17 @@
             <div class="form-group">
                 <label for="fullName">Full Name *</label>
                 <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number *</label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="Enter your phone number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="whatsappNumber">WhatsApp Number *</label>
+                <input type="tel" id="whatsappNumber" name="whatsappNumber" placeholder="Enter your WhatsApp number"
+                    required>
             </div>
 
             <div class="form-group">
@@ -166,11 +177,33 @@
                 <input type="text" id="roomNumber" name="roomNumber" placeholder="Enter your room number" required>
             </div>
 
+            <div class="form-group">
+                <label for="guardianTitle">Parent/Guardian Title *</label>
+                <select id="guardianTitle" name="guardianTitle" required>
+                    <option value=""> Select Title </option>
+                    <option value="Mr">Mr</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="other">other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="guardianName">Parent/Guardian Name *</label>
+                <input type="text" id="guardianName" name="guardianName" placeholder="Enter parent/guardian name"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="guardianPhone">Parent/Guardian Phone Number *</label>
+                <input type="tel" id="guardianPhone" name="guardianPhone"
+                    placeholder="Enter parent/guardian phone number" required>
+            </div>
+
             <button type="submit">Submit</button>
         </form>
 
         <div style="text-align: center; margin-top: 20px; font-size: 12px;">
-            <a href="/admin" style="color: #667eea; text-decoration: none;">Admin Dashboard</a>
+            <a href="/admin" style="color: #1a0ce7; text-decoration: none;">Admin Dashboard</a>
         </div>
     </div>
 
@@ -183,12 +216,17 @@
             e.preventDefault();
 
             const fullName = document.getElementById('fullName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const whatsappNumber = document.getElementById('whatsappNumber').value.trim();
             const program = document.getElementById('program').value;
             const yearOfStudy = document.getElementById('yearOfStudy').value;
             const hotel = document.getElementById('hotel').value;
             const roomNumber = document.getElementById('roomNumber').value.trim();
+            const guardianTitle = document.getElementById('guardianTitle').value;
+            const guardianName = document.getElementById('guardianName').value.trim();
+            const guardianPhone = document.getElementById('guardianPhone').value.trim();
 
-            if (!fullName || !program || !yearOfStudy || !hotel || !roomNumber) {
+            if (!fullName || !phoneNumber || !whatsappNumber || !program || !yearOfStudy || !hotel || !roomNumber | !guardianTitle | !guardianName | !guardianPhone) {
                 errorMessage.style.display = 'block';
                 successMessage.style.display = 'none';
                 return;
