@@ -1,12 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
-const fs = require('fs');
+const { MongoClient } = require('mongodb');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -14,38 +15,33 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 app.use(session({
-    secret: 'change-this-secret-key',
+    secret: process.env.SESSION_SECRET || 'change-this-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// ---------- Folders & Files ----------
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
+// ---------- MongoDB connection ----------
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri);
+let studentsCollection;
+let adminCollection;
+
+async function connectDB() {
+    try {
+        await client.connect();
+        const db = client.db();
+        studentsCollection = db.collection('students');
+        adminCollection = db.collection('admin');
+        console.log('Connected to MongoDB successfully.');
+    } catch (err) {
+        console.error('Failed to connect to MongoDB:', err);
+    }
 }
+connectDB();
 
-const studentsFile = path.join(dataDir, 'students.json');
-const adminFile = path.join(dataDir, 'admin.json');
-
-// ---------- Helper functions ----------
-function readStudents() {
-    if (!fs.existsSync(studentsFile)) return [];
-    return JSON.parse(fs.readFileSync(studentsFile, 'utf8') || '[]');
-}
-
-function writeStudents(students) {
-    fs.writeFileSync(studentsFile, JSON.stringify(students, null, 2));
-}
-
-function readAdmin() {
-    if (!fs.existsSync(adminFile)) return null;
-    return JSON.parse(fs.readFileSync(adminFile, 'utf8') || 'null');
-}
-
-function writeAdmin(adminData) {
-    fs.writeFileSync(adminFile, JSON.stringify(adminData, null, 2));
+async function getAdminSettings() {
+    return adminCollection.findOne({ _id: 'settings' });
 }
 
 // ---------- Middleware ----------
@@ -58,120 +54,149 @@ const verifyAdmin = (req, res, next) => {
 
 // ---------- Admin Setup / Auth Routes ----------
 
-// Check whether a password has ever been created, and whether this session is logged in
-app.get('/api/admin/status', (req, res) => {
-    const admin = readAdmin();
-    res.json({
-        passwordSet: !!admin,
-        isAdmin: req.session.isAdmin || false
-    });
+app.get('/api/admin/status', async (req, res) => {
+    try {
+        const admin = await getAdminSettings();
+        res.json({
+            passwordSet: !!admin,
+            isAdmin: req.session.isAdmin || false
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error checking status.' });
+    }
 });
 
-// First-time password creation (only works if no password exists yet)
-app.post('/api/admin/setup', (req, res) => {
-    const { password } = req.body;
-    const admin = readAdmin();
+app.post('/api/admin/setup', async (req, res) => {
+    try {
+        const { password } = req.body;
+        const admin = await getAdminSettings();
 
-    if (admin) {
-        return res.status(400).json({ success: false, message: 'Password already set. Please log in.' });
-    }
+        if (admin) {
+            return res.status(400).json({ success: false, message: 'Password already set. Please log in.' });
+        }
 
-    if (!password || password.length < 4) {
-        return res.status(400).json({ success: false, message: 'Password must be at least 4 characters.' });
-    }
+        if (!password || password.length < 4) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 4 characters.' });
+        }
 
-    writeAdmin({ password });
-    req.session.isAdmin = true;
-    res.json({ success: true, message: 'Password created successfully.' });
-});
-
-// Login
-app.post('/api/admin/login', (req, res) => {
-    const { password } = req.body;
-    const admin = readAdmin();
-
-    if (!admin) {
-        return res.status(400).json({ success: false, message: 'No password set up yet.' });
-    }
-
-    if (password === admin.password) {
+        await adminCollection.insertOne({ _id: 'settings', password });
         req.session.isAdmin = true;
-        res.json({ success: true, message: 'Login successful.' });
-    } else {
-        res.status(401).json({ success: false, message: 'Incorrect password.' });
+        res.json({ success: true, message: 'Password created successfully.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error creating password.' });
     }
 });
 
-// Logout
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { password } = req.body;
+        const admin = await getAdminSettings();
+
+        if (!admin) {
+            return res.status(400).json({ success: false, message: 'No password set up yet.' });
+        }
+
+        if (password === admin.password) {
+            req.session.isAdmin = true;
+            res.json({ success: true, message: 'Login successful.' });
+        } else {
+            res.status(401).json({ success: false, message: 'Incorrect password.' });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error logging in.' });
+    }
+});
+
 app.post('/api/admin/logout', (req, res) => {
     req.session.destroy(() => {
         res.json({ success: true, message: 'Logged out.' });
     });
 });
 
-// Change password (must already be logged in, must know current password)
-app.post('/api/admin/change-password', verifyAdmin, (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    const admin = readAdmin();
+app.post('/api/admin/change-password', verifyAdmin, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const admin = await getAdminSettings();
 
-    if (!admin || currentPassword !== admin.password) {
-        return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
+        if (!admin || currentPassword !== admin.password) {
+            return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
+        }
+
+        if (!newPassword || newPassword.length < 4) {
+            return res.status(400).json({ success: false, message: 'New password must be at least 4 characters.' });
+        }
+
+        await adminCollection.updateOne(
+            { _id: 'settings' },
+            { $set: { password: newPassword } }
+        );
+        res.json({ success: true, message: 'Password changed successfully.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error changing password.' });
     }
-
-    if (!newPassword || newPassword.length < 4) {
-        return res.status(400).json({ success: false, message: 'New password must be at least 4 characters.' });
-    }
-
-    writeAdmin({ password: newPassword });
-    res.json({ success: true, message: 'Password changed successfully.' });
 });
 
 // ---------- Student Data Routes ----------
 
-// Get all students (admin only)
-app.get('/api/admin/students', verifyAdmin, (req, res) => {
-    const students = readStudents();
-    res.json({ success: true, count: students.length, students });
+app.get('/api/admin/students', verifyAdmin, async (req, res) => {
+    try {
+        const students = await studentsCollection.find().sort({ submittedAt: -1 }).toArray();
+        res.json({ success: true, count: students.length, students });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Error fetching students.' });
+    }
 });
 
-// Delete a student (admin only)
-app.delete('/api/admin/students/:id', verifyAdmin, (req, res) => {
-    const id = parseInt(req.params.id);
-    let students = readStudents();
-    const originalLength = students.length;
-    students = students.filter(s => s.id !== id);
+app.delete('/api/admin/students/:id', verifyAdmin, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const result = await studentsCollection.deleteOne({ id: id });
 
-    if (students.length === originalLength) {
-        return res.status(404).json({ success: false, message: 'Student not found' });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        res.json({ success: true, message: 'Student deleted' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Error deleting student.' });
     }
-
-    writeStudents(students);
-    res.json({ success: true, message: 'Student deleted' });
 });
 
 // Submit student info (public form, no login needed, no counts revealed)
-app.post('/api/students', (req, res) => {
-    const { fullName, program, yearOfStudy, hotel, roomNumber } = req.body;
+app.post('/api/students', async (req, res) => {
+    try {
+        const {
+            fullName, surname, phoneNumber, whatsappNumber,
+            program, yearOfStudy, hotel, roomNumber,
+            guardianTitle, guardianName, guardianPhone
+        } = req.body;
 
-    if (!fullName || !program || !yearOfStudy || !hotel || !roomNumber) {
-        return res.status(400).json({ success: false, message: 'All fields required' });
+        if (!fullName || !surname || !phoneNumber || !whatsappNumber ||
+            !program || !yearOfStudy || !hotel || !roomNumber ||
+            !guardianTitle || !guardianName || !guardianPhone) {
+            return res.status(400).json({ success: false, message: 'All fields required' });
+        }
+
+        const student = {
+            fullName,
+            surname,
+            phoneNumber,
+            whatsappNumber,
+            program,
+            yearOfStudy,
+            hotel,
+            roomNumber,
+            guardianTitle,
+            guardianName,
+            guardianPhone,
+        };
+
+        await studentsCollection.insertOne(student);
+
+        res.status(201).json({ success: true, message: 'information recorded Muli Bantu Sana.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Error saving your information.' });
     }
-
-    const student = {
-        id: Date.now(),
-        fullName,
-        program,
-        yearOfStudy,
-        hotel,
-        roomNumber,
-        submittedAt: new Date().toISOString()
-    };
-
-    const students = readStudents();
-    students.push(student);
-    writeStudents(students);
-
-    res.status(201).json({ success: true, message: 'Your information has been recorded.' });
 });
 
 // ---------- Page Routes ----------
@@ -184,6 +209,5 @@ app.get('/admin', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    console.log(`Admin: http://localhost:${PORT}/admin`);
+    console.log(`Server running on port ${PORT}`);
 });
