@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
 const { MongoClient } = require('mongodb');
+const { ObjectId } = require('mongodb');
 const path = require('path');
 
 const app = express();
@@ -140,7 +141,7 @@ app.post('/api/admin/change-password', verifyAdmin, async (req, res) => {
 
 app.get('/api/admin/students', verifyAdmin, async (req, res) => {
     try {
-        const students = await studentsCollection.find().sort({ submittedAt: -1 }).toArray();
+        const students = await studentsCollection.find().sort({ _id: -1 }).toArray();
         res.json({ success: true, count: students.length, students });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Error fetching students.' });
@@ -150,7 +151,7 @@ app.get('/api/admin/students', verifyAdmin, async (req, res) => {
 app.delete('/api/admin/students/:id', verifyAdmin, async (req, res) => {
     try {
         const id = req.params.id;
-        const result = await studentsCollection.deleteOne({ id: id });
+        const result = await studentsCollection.deleteOne({ _id: new ObjectId(id) });
 
         if (result.deletedCount === 0) {
             return res.status(404).json({ success: false, message: 'Student not found' });
