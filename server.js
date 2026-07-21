@@ -166,12 +166,12 @@ app.delete('/api/admin/students/:id', verifyAdmin, async (req, res) => {
 app.post('/api/students', async (req, res) => {
     try {
         const {
-            fullName, surname, phoneNumber, whatsappNumber,
+            fullName, phoneNumber, whatsappNumber,
             program, yearOfStudy, hotel, roomNumber,
             guardianTitle, guardianName, guardianPhone
         } = req.body;
 
-        if (!fullName || !surname || !phoneNumber || !whatsappNumber ||
+        if (!fullName || !phoneNumber || !whatsappNumber ||
             !program || !yearOfStudy || !hotel || !roomNumber ||
             !guardianTitle || !guardianName || !guardianPhone) {
             return res.status(400).json({ success: false, message: 'All fields required' });
@@ -179,7 +179,6 @@ app.post('/api/students', async (req, res) => {
 
         const student = {
             fullName,
-            surname,
             phoneNumber,
             whatsappNumber,
             program,
