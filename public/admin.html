@@ -391,7 +391,6 @@
                                     <th>Guardian Title</th>
                                     <th>Guardian Name</th>
                                     <th>Guardian Phone</th>
-                                    <th>Submitted</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -604,7 +603,6 @@
             }
 
             students.forEach(student => {
-                const date = new Date(student.submittedAt).toLocaleString();
                 const row = `
                     <tr>
                         <td>${student.fullName || ''}</td>
@@ -617,8 +615,7 @@
                         <td>${student.guardianTitle || ''}</td>
                         <td>${student.guardianName || ''}</td>
                         <td>${student.guardianPhone || ''}</td>
-                        <td>${date}</td>
-                        <td><button class="btn-delete" onclick="deleteStudent('${student.id}')">Delete</button></td>
+                        <td><button class="btn-delete" onclick="deleteStudent('${student._id}')">Delete</button></td>
                     </tr>
                 `;
                 table.innerHTML += row;
