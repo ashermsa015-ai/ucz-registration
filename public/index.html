@@ -236,7 +236,7 @@
                 const response = await fetch('/api/students', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fullName, program, yearOfStudy, hotel, roomNumber })
+                    body: JSON.stringify({ fullName,phoneNumber,whatsappNumber, program, yearOfStudy, hotel, roomNumber,guardianTitle,guardianName,guardianPhone })
                 });
 
                 const data = await response.json();
